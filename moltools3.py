@@ -82,15 +82,20 @@ def compose_email(to, carbon_copy, subject, body, attachements):
 # https://github.com/ActiveState/appdirs
 # pip install easysettings
 # pip install appdirs
-def load_or_create_app_config(appname, configname="config.ini"):
+def load_or_create_app_config(appname, configname="config.ini", config_class=None):
     import appdirs
-    from easysettings import EasySettings
     import os
+
+    if config_class is None:
+        from easysettings import EasySettings
+        config_class = EasySettings
+
     if appname[0].islower():
         appname = appname.capitalize()
+
     path = appdirs.user_config_dir(appname, appauthor=False) # Don't make author specific subdirectory
     os.makedirs(path, exist_ok=True)
     path = os.path.join(path, configname)
-    settings = EasySettings(path)
+    settings = config_class(path)
     settings.set_and_save = settings.setsave
     return settings
