@@ -77,25 +77,60 @@ def compose_email(to, carbon_copy, subject, body, attachements):
         mail.Attachments.Add(str(attachment.resolve()))
     mail.Display()
 
-    
-# https://github.com/welbornprod/easysettings
+
+from configparser import ConfigParser
+class MolConfig:
+
+    IMPLICIT_SECTION = "Settings"
+
+    def __init__(self, path):
+        self.path = path
+        self.config_obj = ConfigParser()
+        if path.exists():
+            with path.open(encoding="UTF-8") as f:
+                self.config_obj.read_file(f)
+        if MolConfig.IMPLICIT_SECTION not in self.config_obj:
+            self.config_obj.add_section(MolConfig.IMPLICIT_SECTION)
+
+    def save(self):
+        with open(str(self.path), "wt", encoding="UTF-8") as f:
+            self.config_obj.write(f)
+
+    def get(self, name, default=""):
+        return self.config_obj.get(MolConfig.IMPLICIT_SECTION, name, fallback=default)
+
+    def set(self, name, value):
+        return self.config_obj.set(MolConfig.IMPLICIT_SECTION, name, str(value))
+
+    def get_bool(self, name, default=False):
+        return self.config_obj.getboolean(MolConfig.IMPLICIT_SECTION, name, fallback=default)
+
+    def get_int(self, name, default=0):
+        return self.config_obj.getint(MolConfig.IMPLICIT_SECTION, name, fallback=default)
+
+    def get_list(self, name):
+        list_str = self.get(name)
+        return list(filter(lambda string: string != "", list_str.split("|")))
+
+    def set_list(self, name, list):
+        self.set(name, "|".join(list))
+
+
 # https://github.com/ActiveState/appdirs
-# pip install easysettings
 # pip install appdirs
 def load_or_create_app_config(appname, configname="config.ini", config_class=None):
     import appdirs
-    import os
+    from pathlib import Path
 
     if config_class is None:
-        from easysettings import EasySettings
-        config_class = EasySettings
+        config_class = MolConfig
 
     if appname[0].islower():
         appname = appname.capitalize()
 
     path = appdirs.user_config_dir(appname, appauthor=False) # Don't make author specific subdirectory
-    os.makedirs(path, exist_ok=True)
-    path = os.path.join(path, configname)
-    settings = config_class(path)
-    settings.set_and_save = settings.setsave
-    return settings
+    path = Path(path)
+    path.mkdir(parents=True, exist_ok=True)
+    path /= configname
+    config = config_class(path)
+    return config
